@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: guerra-de-comunidades
+    runtime: static
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

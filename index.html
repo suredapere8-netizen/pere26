@@ -292,6 +292,13 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .intro h1{font-family:var(--display);font-weight:400;font-size:clamp(32px,6vw,60px);margin:6px 0;color:var(--brass);line-height:.95}
 .intro p{font-size:18px;line-height:1.4;margin:0 0 6px}
 @media (prefers-reduced-motion:reduce){.pulse,.prompt,.tgt,.hit{animation:none!important}}
+
+.cfgb{background:transparent;border:1px solid var(--line);color:var(--fg);width:38px;height:38px;font-size:18px;cursor:pointer}
+.snd[hidden]{display:none!important}
+.tabs .moreb{opacity:.75;font-style:italic}
+.views .sideb{margin-left:auto;flex:0 0 auto;opacity:.8}
+.app.noside{grid-template-columns:minmax(0,1fr)!important}.app.noside .side{display:none}
+.side .pane .note{font-size:12px;opacity:.75}
 </style>
 
 <div class="wrap" id="root"></div>
@@ -488,16 +495,14 @@ function render(){
     <div class="me">${flag(S.pid)}<div><h1>Guerra de Comunidades</h1><div class="sub">${RANKS[P0().lvl-1]} de ${R[S.pid].n}</div></div></div><button class="rankb" data-act="mis" title="Tu rango y tus misiones">⭐ Nv ${P0().lvl}<span class="xpb"><i style="width:${Math.min(100,P0().xp/xpNeed(P0().lvl)*100)}%"></i></span></button>${P0().chests?`<button class="chestb" data-act="chest" title="Abrir envío de suministros">📦 ${P0().chests}</button>`:""}
     <div class="stats">
       <div class="stat money"><b>${fmt(S.money)} €</b><span>Fondos</span></div>
-      <div class="stat"><b>${S.turn}</b><span>Turno</span></div><div class="stat" title="${SEASON().d}"><b>${SEASON().ic}</b><span>${SEASON().n}</span></div>
+      <div class="stat" title="${SEASON().n}: ${SEASON().d}"><b>${S.turn}</b><span>Turno</span></div>
       <div class="stat"><b>${myCount()}/${IDS.length}</b><span>Regiones</span></div>
-      <div class="stat"><b>${pAtk()}</b><span>Ataque</span></div>
-      <div class="stat"><b>${pDef()}</b><span>Defensa</span></div>
       <div class="stat"><b>${S.attacks}</b><span>Ofensivas</span></div>
     </div>
-    <div class="snd"><button data-act="mus" class="${AU.mus?'on':''}" aria-pressed="${AU.mus}">Música</button><button data-act="fx" class="${AU.fx?'on':''}" aria-pressed="${AU.fx}">Efectos</button><button data-act="hq" class="${HQ?'on':''}" aria-pressed="${HQ}" title="Gráficos en alta calidad (sombras y resolución)">Calidad alta</button></div>
+    <button class="cfgb" data-act="cfg" title="Sonido y gráficos" aria-expanded="${!!ui.cfg}">⚙</button><div class="snd"${ui.cfg?'':' hidden'}><button data-act="mus" class="${AU.mus?'on':''}" aria-pressed="${AU.mus}">Música</button><button data-act="fx" class="${AU.fx?'on':''}" aria-pressed="${AU.fx}">Efectos</button><button data-act="hq" class="${HQ?'on':''}" aria-pressed="${HQ}" title="Gráficos en alta calidad (sombras y resolución)">Calidad alta</button></div>
     <button class="endturn" data-act="end">FIN DE TURNO ▸</button>
   </header>
-  <nav class="views"><button data-view="map" class="${ui.view==='map'?'on':''}">Mapa de guerra</button><button data-view="region" class="${ui.view==='region'?'on':''}">Mi región en 3D</button><button data-view="viajes" class="${ui.view==='viajes'?'on':''}">Viajes</button></nav>`;
+  <nav class="views"><button data-view="map" class="${ui.view==='map'?'on':''}">Mapa de guerra</button><button data-view="region" class="${ui.view==='region'?'on':''}">Mi región en 3D</button><button data-view="viajes" class="${ui.view==='viajes'?'on':''}">Viajes</button><button data-act="side" class="sideb" title="Mostrar u ocultar el panel">${ui.noSide?'Mostrar panel':'Pantalla completa'}</button></nav>`;
   const left = ui.view==='viajes'?`<section class="mapbox">${viajesHTML()}</section>`:ui.view==='map'
     ? `<section class="mapbox">${seasonFxHTML()}${GEO.world?mapSVGWorld():mapSVG()}${rcardHTML(ui.sel||capId())}${faltanHTML()}</section>`
     : `<section class="mapbox"><div class="walkbox" id="w3"><div class="cross"></div>
@@ -505,8 +510,8 @@ function render(){
          <div class="say" id="say" hidden></div><button class="prompt" id="prompt" data-act="enter" hidden></button>
          <div class="touch"><div class="joy" id="joy"><div class="knob"></div></div><div class="tbtns"><button data-act="enter">Acción</button><button data-act="mount" id="mountBtn">Bajar</button><button id="gal">Galope</button></div></div></div>
        <div class="travel"><span>Viajar a</span>${Object.entries(TRAVEL).map(([k,v])=>`<button data-go="${k}">${v[0]}</button>`).join('')}</div></section>`;
-  root.innerHTML = hud + `<div class="app ${GEO.world&&ui.view==='map'&&ui.big!==false?'wide':''}">${left}<aside class="side">
-      <nav class="tabs">${[['ejercito','Ejército'],['imperio','Imperio'],['juegos','Operaciones'],['misiones','Órdenes'],['tareas','Tareas'],['arsenal','Arsenal'],['aspecto','Aspecto'],['parte','Parte']].map(([k,l])=>`<button data-tab="${k}" class="${ui.tab===k?'on':''}">${l}${(k==='tareas'&&['t1','t2','t3'].some(t=>!S.done[t]))||(k==='misiones'&&(P0().chests>0||!P0().mis.all))?'<span class="dot"></span>':''}</button>`).join('')}</nav>
+  root.innerHTML = hud + `<div class="app ${GEO.world&&ui.view==='map'&&ui.big!==false?'wide':''} ${ui.noSide?'noside':''}">${left}<aside class="side">
+      <nav class="tabs">${[['ejercito','Ejército'],['juegos','Operaciones'],['misiones','Órdenes'],...(ui.more||!['ejercito','juegos','misiones'].includes(ui.tab)?[['imperio','Imperio'],['tareas','Tareas'],['arsenal','Arsenal'],['aspecto','Aspecto'],['parte','Parte']]:[])].map(([k,l])=>`<button data-tab="${k}" class="${ui.tab===k?'on':''}">${l}${(k==='tareas'&&['t1','t2','t3'].some(t=>!S.done[t]))||(k==='misiones'&&(P0().chests>0||!P0().mis.all))?'<span class="dot"></span>':''}</button>`).join('')}<button data-act="more" class="moreb">${ui.more||!['ejercito','juegos','misiones'].includes(ui.tab)?'Menos ▴':'Más ▾'}</button></nav>
       <div class="pane">${paneHTML(ui.tab)}</div></aside></div>`;
   if(ui.view==='region')bindJoy();
   if(ui.view==='map')bindMapZoom();
@@ -657,6 +662,9 @@ document.addEventListener('click',e=>{
   if(d.act==='chest')return openChest();
   if(d.act==='parade'){$('#modal').hidden=true;if(cleanup){cleanup();cleanup=null}return parade(d.t||'')}
   if(d.act==='close')return closeModal();
+  if(d.act==='cfg'){ui.cfg=!ui.cfg;render();return}
+  if(d.act==='more'){ui.more=!(ui.more||!['ejercito','juegos','misiones'].includes(ui.tab));if(!ui.more&&!['ejercito','juegos','misiones'].includes(ui.tab))ui.tab='ejercito';render();return}
+  if(d.act==='side'){ui.noSide=!ui.noSide;render();return}
   if(d.act==='enter')return interact3();
   if(d.act==='mount')return toggleMount();
   if(d.act==='mus'){setMus(!AU.mus);audioInit();render();return}
@@ -1667,10 +1675,13 @@ function makePerson(o){
   const legs=[],arms=[];
   const C=(rt,rb,h,m,x,y,z,p,sg=12)=>{const mm=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,o.lo?Math.min(sg,7):sg),m);mm.position.set(x,y,z);mm.castShadow=true;mm.receiveShadow=true;p.add(mm);return mm};
   const Sp=(r,m,x,y,z,p,sx=1,sy=1,sz=1)=>{const mm=new THREE.Mesh(new THREE.SphereGeometry(r,o.lo?8:14,o.lo?6:10),m);mm.position.set(x,y,z);mm.scale.set(sx,sy,sz);mm.castShadow=true;p.add(mm);return mm};
-  for(const sx of[-.105,.105]){const p=new THREE.Group();p.position.set(sx,.95,0);C(.088,.074,.46,pa,0,-.23,0,p);Sp(.074,pa,0,-.47,0,p);C(.07,.058,.42,pa,0,-.69,0,p);
+  for(const sx of[-.105,.105]){const p=new THREE.Group();p.position.set(sx,.95,0);C(.088,.074,.46,pa,0,-.23,0,p);Sp(.074,pa,0,-.47,0,p);C(.07,.058,.42,pa,0,-.69,0,p);if(o.belt)C(.077,.066,.24,M(0x6b6450),0,-.75,0,p);
     const bo=new THREE.Mesh(new THREE.BoxGeometry(.125,.13,.27),bt);bo.position.set(0,-.88,.045);bo.castShadow=true;p.add(bo);g.add(p);legs.push(p)}
   Sp(.17,pa,0,.98,0,g,1.08,.55,.72);const t=C(.2,.165,.6,cl,0,1.27,0,g,16);t.scale.z=.66;Sp(.205,cl,0,1.55,0,g,1.04,.48,.68);
-  if(o.belt){const b=C(.178,.178,.06,dk,0,1.0,0,g,16);b.scale.z=.7;Sp(.03,M(0x8a7a40),0,1.0,.125,g)}
+  if(o.belt){const b=C(.178,.178,.06,dk,0,1.0,0,g,16);b.scale.z=.7;Sp(.03,M(0x8a7a40),0,1.0,.125,g);const lw=M(0x4e4230);
+    for(const sx of[-1,1]){const st=new THREE.Mesh(new THREE.BoxGeometry(.045,.6,.025),lw);st.position.set(sx*.075,1.3,.13);st.rotation.z=sx*.32;st.castShadow=true;g.add(st);
+      for(const px of[.07,.135]){const pc=new THREE.Mesh(new THREE.BoxGeometry(.06,.075,.05),lw);pc.position.set(sx*px,1.06,.13-(px-.07)*.5);g.add(pc)}}
+    const ct=C(.055,.055,.15,M(0x3e4a32),.19,.93,-.04,g,10);ct.rotation.z=.12;C(.03,.035,.05,M(0x2a2a24),0,1.57,.105,g,8)}
   if(o.rifle){const bp=new THREE.Mesh(new THREE.BoxGeometry(.3,.36,.14),M(0x4a4a30));bp.position.set(0,1.3,-.17);bp.castShadow=true;g.add(bp);C(.07,.07,.3,M(0x5a5a3a),0,1.52,-.17,g,10).rotation.z=Math.PI/2}
   C(.055,.06,.1,sk,0,1.66,0,g);Sp(.112,sk,0,1.8,0,g,.95,1.08,1);Sp(.02,sk,0,1.79,.108,g);for(const ex of[-.038,.038])Sp(.012,dk,ex,1.815,.098,g);
   for(const sx of[-.255,.255]){const p=new THREE.Group();p.position.set(sx,1.53,0);Sp(.07,cl,0,0,0,p);C(.062,.054,.3,cl,0,-.17,0,p);Sp(.054,cl,0,-.33,0,p);C(.05,.044,.27,cl,0,-.47,0,p);Sp(.046,sk,0,-.64,0,p,.9,1.15,.8);
@@ -1708,7 +1719,7 @@ const THEMES={monte:{n:'Montaña verde',ground:0x6f9a4e,hills:1.7,tree:'pino',mt
   selva:{n:'Selva tropical',ground:0x4f8a36,hills:1.2,tree:'selva',mtn:0x3f6a3a,dens:1.4,gh:[.28,.5]}};
 function themeOf(id){const T={ast:'monte',can:'monte',gal:'monte',vas:'monte',nav:'nieve',ara:'nieve',cat:'nieve',cyl:'meseta',mad:'meseta',clm:'meseta',rio:'meseta',ext:'seco',and:'seco',mur:'seco',val:'playa',bal:'playa',cnr:'playa',ESP:'meseta'};
   if(T[id])return T[id];if(WORLD&&WORLD.lab&&WORLD.lab[id]){const lat=84-WORLD.lab[id][1]/10;if(lat>58)return 'nieve';if(lat>44)return 'monte';if(lat>33)return COAST.has(id)?'playa':'meseta';if(lat>14)return 'desierto';return 'selva'}return 'meseta'}
-function uniformOf(f){const base=new THREE.Color(RCOL[f]||`hsl(${Math.abs(hash(String(f)))%360},45%,40%)`),c=base.clone().lerp(new THREE.Color(0x4b5232),.45);
+function uniformOf(f){const base=new THREE.Color(RCOL[f]||`hsl(${Math.abs(hash(String(f)))%360},45%,40%)`),c=base.clone().lerp(new THREE.Color(0x4f5536),.68);
   return{cloth:c.getHex(),pants:c.clone().multiplyScalar(.7).getHex(),hat:c.clone().multiplyScalar(.8).getHex(),band:base.getHex()}}
 function alliesOf(id,excl){if(!id||!ADJ[id])return[];return ADJ[id].filter(n=>IDS.includes(n)&&!mine(n)&&n!==excl&&n!==id&&S.armies[n]&&(S.armies[n].s||0)>3).sort((a,b)=>eDef(b)-eDef(a)).slice(0,2)}
 function allyDef(id,excl){return Math.round(alliesOf(id,excl).reduce((a,n)=>a+eDef(n)*.3,0))}
@@ -1992,7 +2003,7 @@ function battle3D(cfg,onEnd){
   const HPB=[],hpTex=new THREE.CanvasTexture(cvs(8,8,g=>{g.fillStyle='#fff';g.fillRect(0,0,8,8)})),camR=new THREE.Vector3();
   for(let i=0;i<(coarse?30:64);i++){const mk=(c,o)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:hpTex,color:c,transparent:true,opacity:o,depthWrite:false,fog:false,toneMapped:false}));sp.center.set(0,.5);sp.visible=false;sp.renderOrder=6;sc.add(sp);return sp};HPB.push({bg:mk(0x0a0a0a,.7),fg:mk(0x6fcf4f,.95)})}
   function hpBars(){const cp=cam.position;camR.setFromMatrixColumn(cam.matrixWorld,0);camR.y=0;camR.normalize();const L=[];
-    if(B.started)for(const u of B.units){if(!u.alive||u.k==='av'||u.gone)continue;const d=(u.x-cp.x)**2+(u.z-cp.z)**2,lim=u.k==='s'?(u.boss||u.officer?110:65):170;if(d>lim*lim)continue;if(u.k==='s'&&!u.boss&&!u.officer&&u.hp>=(u.max||u.hp)*.999&&d>18*18)continue;L.push([d,u])}
+    if(B.started)for(const u of B.units){if(!u.alive||u.k==='av'||u.gone)continue;const d=(u.x-cp.x)**2+(u.z-cp.z)**2,lim=u.k==='s'?(u.boss||u.officer?110:65):170;if(d>lim*lim)continue;if(u.k==='s'&&!u.boss&&!u.officer&&u.hp>=(u.max||u.hp)*.999)continue;L.push([d,u])}
     if(PVP)for(const pp of PEERS.values())if(pp.alive)L.push([(pp.x-cp.x)**2+(pp.z-cp.z)**2,pp]);
     L.sort((a,b)=>a[0]-b[0]);
     for(let i=0;i<HPB.length;i++){const b=HPB[i],e=L[i]&&L[i][1];if(!e){b.bg.visible=b.fg.visible=false;continue}if(!e.isPeer&&e.hp>(e.max||0))e.max=e.hp;
@@ -2124,7 +2135,7 @@ function battle3D(cfg,onEnd){
     if(eng&&u.k==='s'&&!moving)face(u,tg.x,tg.z);
     u.y=ground(u.x,u.z);
     if(u.k==='s'){const ud=u.m.userData;if(moving){u.ph+=dt*8;ud.legs[0].rotation.x=Math.sin(u.ph)*.6;ud.legs[1].rotation.x=-Math.sin(u.ph)*.6}else{ud.legs[0].rotation.x=ud.legs[1].rotation.x=-1.25*u.crouch}
-      ud.arms[0].rotation.x=ud.arms[1].rotation.x=eng?-1.35:(moving?Math.sin(u.ph)*.4:0)}
+      ud.arms[1].rotation.x=eng?-1.42:(moving?-.32+Math.sin(u.ph)*.08:0);ud.arms[0].rotation.x=eng?-1.08:(moving?Math.sin(u.ph)*.38:0);ud.arms[0].rotation.z=eng?-.32:0}
     if(u.k==='t'){const fx=Math.sin(u.m.rotation.y),fz=Math.cos(u.m.rotation.y);if(moving&&Math.random()<dt*5&&Math.abs(u.x-cam.position.x)+Math.abs(u.z-cam.position.z)<160)spr(dustT,u.x-fx*3+rnd(-1,1),u.y+.5,u.z-fz*3+rnd(-1,1),2,1.6,{grow:2.5,op:.45});u.m.rotation.x=-Math.atan2(ground(u.x+fx*2.6,u.z+fz*2.6)-ground(u.x-fx*2.6,u.z-fz*2.6),5.2);if(tg)u.m.userData.tu.rotation.y=Math.atan2(tg.x-u.x,tg.z-u.z)-u.m.rotation.y}
     if(eng){u.cd-=dt;if(u.cd<=0){fireAt(u,tg,d);u.cd=rnd(...st.cd)*(u.crouch>.5?1.15:1)*(u.boss?.5:1)}}}
   // ---- jugador ----

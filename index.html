@@ -1808,7 +1808,11 @@ function battle3D(cfg,onEnd){
   const put=(m,x,y,z)=>{m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;sc.add(m);return m};
   const bx=(w,h,d,mat,x,y0,z,s)=>put(new THREE.Mesh(boxG(w,h,d,s),mat),x,y0+h/2,z);
   const ob=(x0,x1,y0,y1,z0,z1,mat,s=3,hp=0,kind='')=>{const m=bx(x1-x0,y1-y0,z1-z0,mat,(x0+x1)/2,y0,(z0+z1)/2,s);const o={x0,x1,y0,y1,z0,z1,hp,kind,m};B.obs.push(o);return o};
-  {const neu=new THREE.CanvasTexture(cvs(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);speckle(g,w,h,5000,['#e4e4e4','#d2d2d2','#f8f8f8','#c4c4c4']);g.strokeStyle='rgba(0,0,0,.12)';for(let i=0;i<260;i++){const x=Math.random()*w,y=Math.random()*h;g.beginPath();g.moveTo(x,y);g.lineTo(x+(Math.random()-.5)*4,y-3-Math.random()*4);g.stroke()}}));
+  {const neu=new THREE.CanvasTexture(cvs(512,512,(g,w,h)=>{const id=g.createImageData(w,h),d=id.data,Rn=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)},
+      V=(x,y,p)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),a=Rn(xi%p,yi%p),b=Rn((xi+1)%p,yi%p),c=Rn(xi%p,(yi+1)%p),e=Rn((xi+1)%p,(yi+1)%p);return a+(b-a)*u+(c-a)*v+(a-b-c+e)*u*v};
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){let n=0,amp=.5,f=4;for(let o=0;o<5;o++){n+=V(x/w*f,y/h*f,f)*amp;amp*=.5;f*=2}const sv=clamp(.66+n*.5+(Math.random()-.5)*.1,0,1)*255,i=(y*w+x)*4;d[i]=sv;d[i+1]=sv*.99;d[i+2]=sv*.96;d[i+3]=255}g.putImageData(id,0,0);
+      g.strokeStyle='rgba(0,0,0,.1)';for(let i=0;i<520;i++){const x=Math.random()*w,y=Math.random()*h;g.beginPath();g.moveTo(x,y);g.lineTo(x+(Math.random()-.5)*4,y-3-Math.random()*5);g.stroke()}
+      for(let i=0;i<300;i++){g.fillStyle=Math.random()<.5?'rgba(55,50,40,.35)':'rgba(240,236,226,.35)';g.beginPath();g.arc(Math.random()*w,Math.random()*h,.6+Math.random()*1.5,0,6.28);g.fill()}}));
     neu.wrapS=neu.wrapT=THREE.RepeatWrapping;neu.repeat.set(210,210);
     const tg=new THREE.PlaneGeometry(900,900,220,220);tg.rotateX(-Math.PI/2);const ps=tg.attributes.position,cols=new Float32Array(ps.count*3),cc=new THREE.Color(),base=new THREE.Color(TH.ground),mud=new THREE.Color(TH.snow?0x8b98a6:0x6b5a3e),sand=new THREE.Color(0xd8c38c);
     for(let i=0;i<ps.count;i++){const x=ps.getX(i),z=ps.getZ(i),h=hRaw(x,z);ps.setY(i,h);const dr=Math.abs(z-riverZ(x));cc.copy(base);cc.offsetHSL(0,0,(Math.random()-.5)*.05+h*.01);if(dr<8)cc.lerp(mud,(1-dr/8)*.8);if(coastal&&x>CX-12)cc.lerp(sand,clamp((x-CX+12)/8,0,1));cols.set([cc.r,cc.g,cc.b],i*3)}
@@ -1950,12 +1954,12 @@ function battle3D(cfg,onEnd){
     return ISET[key]={parts,piv,cap,us:[]}}
   function instSoldier(u,key,opts){const set=iSet(key,opts,u.side.icap||90);let i=set.us.length;
     if(i>=set.cap){let old=null;for(const v of set.us)if(v&&!v.alive&&(!old||v.dt>old.dt))old=v;if(!old)return null;i=old.ii;old.gone=true;old.iset=null;sc.remove(old.m)}
-    set.us[i]=u;u.iset=set;u.ii=i;u.ifl=false;u.still=false;const g=new THREE.Group(),legs=[],arms=[];set.piv.forEach((p,j)=>{const o=new THREE.Object3D();o.position.copy(p);g.add(o);(j<2?legs:arms).push(o)});g.userData={legs,arms};return g}
+    set.us[i]=u;u.iset=set;u.ii=i;u.ifl=false;u.still=false;u.icSet=false;u.ic=new THREE.Color().setScalar(.84+Math.random()*.22);const g=new THREE.Group(),legs=[],arms=[];set.piv.forEach((p,j)=>{const o=new THREE.Object3D();o.position.copy(p);g.add(o);(j<2?legs:arms).push(o)});g.userData={legs,arms};return g}
   function unInst(u){if(!u.iset)return;for(const im of u.iset.parts){im.setMatrixAt(u.ii,I0);im.instanceMatrix.needsUpdate=true}u.iset.us[u.ii]=null;u.iset=null}
   function syncInst(){const dirty=new Set();for(const u of B.units){const st=u.iset;if(!st||u.still)continue;if(u.gone){unInst(u);continue}
       const m=u.m;m.updateMatrix();st.parts[0].setMatrixAt(u.ii,m.matrix);const ud=m.userData;for(let j=0;j<4;j++){const o=j<2?ud.legs[j]:ud.arms[j-2];o.updateMatrix();I4.multiplyMatrices(m.matrix,o.matrix);st.parts[j+1].setMatrixAt(u.ii,I4)}
-      const f=u.flash>0;if(f!==u.ifl){u.ifl=f;for(const im of st.parts){im.setColorAt(u.ii,f?IR:IW);im.instanceColor.needsUpdate=true}}
-      if(!u.alive&&u.dt>.7){u.still=true;if(u.ifl){u.ifl=false;for(const im of st.parts){im.setColorAt(u.ii,IW);im.instanceColor.needsUpdate=true}}}dirty.add(st)}
+      const f=u.flash>0;if(f!==u.ifl||!u.icSet){u.ifl=f;u.icSet=true;for(const im of st.parts){im.setColorAt(u.ii,f?IR:u.ic);im.instanceColor.needsUpdate=true}}
+      if(!u.alive&&u.dt>.7){u.still=true;if(u.ifl){u.ifl=false;for(const im of st.parts){im.setColorAt(u.ii,u.ic||IW);im.instanceColor.needsUpdate=true}}}dirty.add(st)}
     for(const st of dirty)for(const im of st.parts)im.instanceMatrix.needsUpdate=true}
   // ---- batalla en línea: cada jugador comparte su posición, sus bajas y el daño que hace ----
   const PEERS=new Map(),PVPH={},PVPS={dmg:{},dth:{}};B.peers=PEERS;let pvpRoom=null,pvpMe=null,pvpT=0,pvpSb=0;
@@ -1967,7 +1971,7 @@ function battle3D(cfg,onEnd){
     for(const p of list){if(p.isMe||p.kind!=='viewer')continue;const st=p.presence||{};if(!st.pvp)continue;seen.add(p.peer);let pp=PEERS.get(p.peer);const pid=R[st.pid]?st.pid:null;
       if(!pp){
         pp={peer:p.peer,isPeer:true,k:'s',m:null,r:null,x:+st.x||0,z:+st.z||0,y:0,tyaw:0,alive:true,ph:0,flash:0,prone:0,crouch:0,side:them};PEERS.set(p.peer,pp);PVPS.dmg[p.peer]=(st.h&&+st.h[pvpMe])||0;PVPS.dth[p.peer]=+st.d||0;feed(`${pid?R[pid].n:'Un rival'} ha entrado en la batalla`)}
-      {const rr=st.r==='t'?'t':'s';if(pp.r!==rr)pvpModel(pp,pid,rr)}pp.tu=+st.tu||0;pp.tx=clamp(+st.x||0,-300,300);pp.tz=clamp(+st.z||0,-300,300);pp.tyaw=+st.yaw||0;pp.alive=!!st.a;pp.n=pid?R[pid].n:'Rival';pp.kills=+st.k||0;pp.deaths=+st.d||0;
+      {const rr=st.r==='t'?'t':'s';if(pp.r!==rr)pvpModel(pp,pid,rr)}pp.tu=+st.tu||0;pp.hpf=st.hp!=null?clamp(+st.hp||0,0,1):1;pp.tx=clamp(+st.x||0,-300,300);pp.tz=clamp(+st.z||0,-300,300);pp.tyaw=+st.yaw||0;pp.alive=!!st.a;pp.n=pid?R[pid].n:'Rival';pp.kills=+st.k||0;pp.deaths=+st.d||0;
       const hd=(st.h&&+st.h[pvpMe])||0,last=PVPS.dmg[p.peer]||0;if(hd>last){PVPS.dmg[p.peer]=hd;if(PL.alive&&B.started&&!B.over){PL.hp-=Math.min(400,hd-last)*.45*(PL.k==='t'?.3:1);PL.regen=4;B.dmgA=Math.min(1,(B.dmgA||0)+.5);sfx('hurt',.6);if(PL.hp<=0){B.kb=p.peer;playerDie()}}}
       const dd=+st.d||0;if(dd>(PVPS.dth[p.peer]||0)){PVPS.dth[p.peer]=dd;if(st.kb===pvpMe&&B.started&&!B.over){PL.kills++;streakKill();feed(`Has abatido a ${pp.n}`);hitMark(true);sfx('hit',.8)}}}
     for(const[k,pp]of PEERS)if(!seen.has(k)){sc.remove(pp.m);PEERS.delete(k);feed(`${pp.n} ha salido de la batalla`)}
@@ -1980,10 +1984,22 @@ function battle3D(cfg,onEnd){
       const rows=[{n:R[S.pid].n+' (tú)',k:PL.kills,d:PL.deaths||0},...[...PEERS.values()].map(p=>({n:p.n,k:p.kills,d:p.deaths}))].sort((a,b)=>b.k-a.k);
       sb.innerHTML='<b style="color:var(--brass)">BATALLA EN LÍNEA</b>'+rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px"><span>${r.n}</span><span>${r.k} bajas · ${r.d} caídas</span></div>`).join('')+(PEERS.size?'':'<div style="opacity:.7">Esperando a tus amigos…</div>')}
     if(!pvpRoom)return;pvpT-=dt;if(pvpT>0)return;pvpT=.066;
-    pvpRoom.presence({pvp:1,x:Math.round(PL.x*100)/100,z:Math.round(PL.z*100)/100,yaw:Math.round((PL.role==='tanque'?PL.byaw:PL.yaw)*1000)/1000,r:PL.role==='tanque'?'t':'s',tu:Math.round((PL.tur||0)*100)/100,a:PL.alive?1:0,pid:S.pid,k:PL.kills,d:PL.deaths||0,kb:B.kb||null,h:PVPH}).catch(()=>{})}
+    pvpRoom.presence({pvp:1,x:Math.round(PL.x*100)/100,z:Math.round(PL.z*100)/100,yaw:Math.round((PL.role==='tanque'?PL.byaw:PL.yaw)*1000)/1000,r:PL.role==='tanque'?'t':'s',tu:Math.round((PL.tur||0)*100)/100,a:PL.alive?1:0,hp:Math.round(clamp(PL.hp/PL.max,0,1)*100)/100,pid:S.pid,k:PL.kills,d:PL.deaths||0,kb:B.kb||null,h:PVPH}).catch(()=>{})}
   if(PVP)(async()=>{try{const rm=window.claude&&window.claude.use?await window.claude.use('room'):null;if(!rm){const e=q('#pvpst');if(e)e.textContent='Sin conexión en línea aquí: abre el juego publicado en claude.ai y compártelo con tus amigos. Puedes practicar solo.';return}
       const room=await rm.join('batalla-amigos');if(B3!==B){room.leave().catch(()=>{});return}pvpRoom=room;B.pvpRoom=room;room.onPeers(ch=>pvpPeers(ch.peers));pvpPeers(room.peers())}
     catch(e){const el=q('#pvpst');if(el)el.textContent='No se ha podido entrar en la sala en línea. Puedes practicar solo.'}})();
+  // ---- barras de vida encima de soldados, tanques, helicópteros, barcos y jugadores en línea ----
+  const HPB=[],hpTex=new THREE.CanvasTexture(cvs(8,8,g=>{g.fillStyle='#fff';g.fillRect(0,0,8,8)})),camR=new THREE.Vector3();
+  for(let i=0;i<(coarse?30:64);i++){const mk=(c,o)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:hpTex,color:c,transparent:true,opacity:o,depthWrite:false,fog:false,toneMapped:false}));sp.center.set(0,.5);sp.visible=false;sp.renderOrder=6;sc.add(sp);return sp};HPB.push({bg:mk(0x0a0a0a,.7),fg:mk(0x6fcf4f,.95)})}
+  function hpBars(){const cp=cam.position;camR.setFromMatrixColumn(cam.matrixWorld,0);camR.y=0;camR.normalize();const L=[];
+    if(B.started)for(const u of B.units){if(!u.alive||u.k==='av'||u.gone)continue;const d=(u.x-cp.x)**2+(u.z-cp.z)**2,lim=u.k==='s'?(u.boss||u.officer?110:65):170;if(d>lim*lim)continue;if(u.k==='s'&&!u.boss&&!u.officer&&u.hp>=(u.max||u.hp)*.999&&d>18*18)continue;L.push([d,u])}
+    if(PVP)for(const pp of PEERS.values())if(pp.alive)L.push([(pp.x-cp.x)**2+(pp.z-cp.z)**2,pp]);
+    L.sort((a,b)=>a[0]-b[0]);
+    for(let i=0;i<HPB.length;i++){const b=HPB[i],e=L[i]&&L[i][1];if(!e){b.bg.visible=b.fg.visible=false;continue}if(!e.isPeer&&e.hp>(e.max||0))e.max=e.hp;
+      const f=clamp(e.isPeer?(e.hpf??1):e.hp/(e.max||1),0,1),W=e.k==='s'?(e.boss?1.2:.7):e.k==='bq'?7:e.k==='h'?3:3.4,H=e.k==='s'?.065:.2,
+        y=e.k==='s'?(e.y||0)+(e.boss?2.75:2.12)-(e.prone?1.3:e.crouch>.5?.5:0):e.k==='t'?(e.y||0)+3.9:e.k==='h'?e.y+3.4:9.5,x0=e.x-camR.x*W/2,z0=e.z-camR.z*W/2;
+      b.bg.position.set(x0-camR.x*.035,y,z0-camR.z*.035);b.bg.scale.set(W+.07,H+.06,1);b.fg.position.set(x0,y,z0);b.fg.scale.set(Math.max(.001,W*f),H,1);
+      const friend=!e.isPeer&&e.side===me;b.fg.material.color.setHex(friend?(f>.5?0x4fc3f7:f>.25?0xffb74d:0xe53935):(f>.6?0x6fcf4f:f>.3?0xf2c037:0xe53935));b.bg.visible=b.fg.visible=true}}
   function respawnPos(){if(PVP){let x,z,n=0;do{x=rnd(-130,130);z=rnd(-40,160)}while((isWater(x,z)||Math.abs(z-riverZ(x))<10)&&++n<50);return{x,z}}let best=null,bs=-1e9;for(const u of me.units){if(!u.alive||u.k!=='s')continue;let hot=false;for(const e of them.units)if(e.alive&&Math.abs(e.x-u.x)<40&&Math.abs(e.z-u.z)<40){hot=true;break}if(hot)continue;const pr=pAtt?-u.z:u.z;if(pr>bs){bs=pr;best=u}}
     if(best){const x=best.x+rnd(-2,2),z=best.z+(pAtt?3:-3);if(!isWater(x,z))return{x,z}}return{x:rnd(-6,6),z:pAtt?AZ+6:-70}}
   function spawnUnit(sd,k,initial,ally){
@@ -2005,7 +2021,7 @@ function battle3D(cfg,onEnd){
     if(k==='s'||k==='t')u.y=ground(u.x,u.z);if(k==='h')u.y=ground(u.x,u.z)+u.by;
     if(sd.P&&!ally&&k!=='s')paintVehicle(m,col);m.rotation.order='YXZ';m.position.set(u.x,u.y,u.z);m.rotation.y=att?Math.PI:0;
     u.mats=[];m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material.emissive&&!u.mats.includes(o.material))u.mats.push(o.material)}});
-    sc.add(m);u.m=m;sd.units.push(u);B.units.push(u);return u}
+    sc.add(m);u.m=m;u.max=u.hp;sd.units.push(u);B.units.push(u);return u}
   const VC={s:coarse?(HQ?90:60):(HQ?240:140),t:coarse?6:12,h:coarse?4:6,av:coarse?3:6,bq:coarse?3:5};
   for(const sd of[SA,SD]){const ts=sd.army.s||0;sd.nS=SURV?ts:Math.ceil(ts/Math.max(1,Math.ceil(ts/VC.s)));sd.icap=(SURV?60:sd.nS)+30;
     for(const k of UK){if(k==='bq'&&!coastal){sd.r[k]=1;sd.res[k]=0;continue}
@@ -2109,7 +2125,7 @@ function battle3D(cfg,onEnd){
     u.y=ground(u.x,u.z);
     if(u.k==='s'){const ud=u.m.userData;if(moving){u.ph+=dt*8;ud.legs[0].rotation.x=Math.sin(u.ph)*.6;ud.legs[1].rotation.x=-Math.sin(u.ph)*.6}else{ud.legs[0].rotation.x=ud.legs[1].rotation.x=-1.25*u.crouch}
       ud.arms[0].rotation.x=ud.arms[1].rotation.x=eng?-1.35:(moving?Math.sin(u.ph)*.4:0)}
-    if(u.k==='t'){const fx=Math.sin(u.m.rotation.y),fz=Math.cos(u.m.rotation.y);u.m.rotation.x=-Math.atan2(ground(u.x+fx*2.6,u.z+fz*2.6)-ground(u.x-fx*2.6,u.z-fz*2.6),5.2);if(tg)u.m.userData.tu.rotation.y=Math.atan2(tg.x-u.x,tg.z-u.z)-u.m.rotation.y}
+    if(u.k==='t'){const fx=Math.sin(u.m.rotation.y),fz=Math.cos(u.m.rotation.y);if(moving&&Math.random()<dt*5&&Math.abs(u.x-cam.position.x)+Math.abs(u.z-cam.position.z)<160)spr(dustT,u.x-fx*3+rnd(-1,1),u.y+.5,u.z-fz*3+rnd(-1,1),2,1.6,{grow:2.5,op:.45});u.m.rotation.x=-Math.atan2(ground(u.x+fx*2.6,u.z+fz*2.6)-ground(u.x-fx*2.6,u.z-fz*2.6),5.2);if(tg)u.m.userData.tu.rotation.y=Math.atan2(tg.x-u.x,tg.z-u.z)-u.m.rotation.y}
     if(eng){u.cd-=dt;if(u.cd<=0){fireAt(u,tg,d);u.cd=rnd(...st.cd)*(u.crouch>.5?1.15:1)*(u.boss?.5:1)}}}
   // ---- jugador ----
   const raySph=(o,d,[x,y,z,r])=>{const ox=o.x-x,oy=o.y-y,oz=o.z-z,b=ox*d.x+oy*d.y+oz*d.z,c=ox*ox+oy*oy+oz*oz-r*r,h=b*b-c;return h<0?-1:-b-Math.sqrt(h)};
@@ -2434,7 +2450,7 @@ function battle3D(cfg,onEnd){
     if(!lockLost&&B.paused){B.paused=false;q('#b3pause').hidden=true}
     sky.position.copy(cam.position);
     if(B.started&&!B.paused)step(dt);else if(!B.started){B.t+=dt;cam.position.set(PL.x,ground(PL.x,PL.z)+1.65,PL.z);cam.rotation.set(PL.pitch,PL.yaw+Math.sin(B.t*.3)*.2,0);for(const u of B.units)u.m.position.set(u.x,u.y,u.z)}
-    syncInst();if(PFX)PFX.render(sc,cam);else r.render(sc,cam);if(SNAPQ)doSnap(r.domElement)}
+    syncInst();hpBars();if(PFX)PFX.render(sc,cam);else r.render(sc,cam);if(SNAPQ)doSnap(r.domElement)}
   B.raf=requestAnimationFrame(frame);
   return true;
 }

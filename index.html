@@ -299,6 +299,9 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .views .sideb{margin-left:auto;flex:0 0 auto;opacity:.8}
 .app.noside{grid-template-columns:minmax(0,1fr)!important}.app.noside .side{display:none}
 .side .pane .note{font-size:12px;opacity:.75}
+
+.resl{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:12px;margin-top:4px}.resl small{opacity:.65}.resl .need{color:var(--brass);font-weight:700}
+.stat.res b{font-size:13px;white-space:nowrap}.stat.res i{font-style:normal}.stat.res i.low{color:#ff8f73}
 </style>
 
 <div class="wrap" id="root"></div>
@@ -479,7 +482,7 @@ function attackBlock(id){
   if((ISLAND.has(id)||!ADJ[id].some(mine))&&!((S.army.bq||0)+(S.army.h||0)+(S.army.av||0)))return 'Solo se llega por mar o aire: necesitas barcos, helicópteros o aviones.';
   return '';
 }
-function winChance(a,e){if(a<=0)return 0;let w=0;for(let i=0;i<500;i++)if(a*roll()>e*roll())w++;return w/500}
+function winChance(a,e){if(a<=0)return 0;return stratChance(a,e,1)}
 function loseUnits(army,frac,ships=true){const l={};for(const k of UK){const n=army[k]||0;
   if(k==='bq'&&!ships){l[k]=0;continue}
   l[k]=Math.min(n,k==='s'?Math.round(n*frac):rr(n*frac*({t:.7,h:.6,av:.55,bq:.55}[k])));army[k]=n-l[k]}return l}
@@ -496,7 +499,7 @@ function render(){
     <div class="stats">
       <div class="stat money"><b>${fmt(S.money)} €</b><span>Fondos</span></div>
       <div class="stat" title="${SEASON().n}: ${SEASON().d}"><b>${S.turn}</b><span>Turno</span></div>
-      <div class="stat"><b>${myCount()}/${IDS.length}</b><span>Regiones</span></div>
+      <div class="stat"><b>${myCount()}/${IDS.length}</b><span>Regiones</span></div><div class="stat res" title="Comida · Petróleo · Acero · Carbón"><b>${(()=>{const r0=res0(),nd=resNeed();return Object.keys(RES).map(k=>`<i${nd[k]?' class="low"':''}>${RES[k].ic}${fmt(r0[k])}</i>`).join(' ')})()}</b><span>Recursos</span></div>
       <div class="stat"><b>${S.attacks}</b><span>Ofensivas</span></div>
     </div>
     <button class="cfgb" data-act="cfg" title="Sonido y gráficos" aria-expanded="${!!ui.cfg}">⚙</button><div class="snd"${ui.cfg?'':' hidden'}><button data-act="mus" class="${AU.mus?'on':''}" aria-pressed="${AU.mus}">Música</button><button data-act="fx" class="${AU.fx?'on':''}" aria-pressed="${AU.fx}">Efectos</button><button data-act="hq" class="${HQ?'on':''}" aria-pressed="${HQ}" title="Gráficos en alta calidad (sombras y resolución)">Calidad alta</button></div>
@@ -559,13 +562,13 @@ function mapSVG(){
 
 function rcardHTML(id){
   if(mine(id)){
-    return `<div class="rcard"><div class="fl">${flag(S.pid)}</div><div><div class="sub">${id===capId()?'Tu capital':'Territorio conquistado · antes '+R[id].n}${S.occ&&S.occ[id]>0?` · <b style="color:#ff8f73">resistencia ${S.occ[id]} turno${S.occ[id]>1?'s':''} (−50 % de ingresos)</b>`:''}</div><h2>${R[id].n}</h2>${miniHTML(S.army)}</div>
+    return `<div class="rcard"><div class="fl">${flag(S.pid)}</div><div><div class="sub">${id===capId()?'Tu capital':'Territorio conquistado · antes '+R[id].n}${S.occ&&S.occ[id]>0?` · <b style="color:#ff8f73">resistencia ${S.occ[id]} turno${S.occ[id]>1?'s':''} (−50 % de ingresos)</b>`:''}</div><h2>${R[id].n}</h2>${miniHTML(S.army)}${resLine(id)}</div>
       <div class="ad me"><div class="a"><b>${pAtk(id)}</b><small>ATAQUE</small></div><div class="d"><b>${Math.round(pDef(id)*(id===capId()?1.5:1))}</b><small>DEFENSA</small></div></div>
       <div class="act"><p class="note">Tu ejército defiende todas tus regiones${id===capId()?'. La capital se defiende ×1,5, y si cae pierdes la guerra':''}. Esta región te da <b style="color:var(--fg)">+${R[id].v} €</b> por turno.</p>
       <button class="btn" data-view="region">VISITAR A CABALLO</button>${GEO.world&&WORLD&&WORLD.n[id]?`<button class="btn ghost" data-flyto="${id}">✈️ VOLAR A ${R[id].n.toUpperCase()}</button>`:''}</div></div>`;
   }
   const o=S.owner[id], a=pAtk(id), ad=allyDef(id), al=alliesOf(id), e=eDef(id)+ad, ch=winChance(a,e), why=attackBlock(id);
-  return `<div class="rcard"><div class="fl">${flag(id)}</div><div><div class="sub">${S.rebels&&S.rebels[id]?'<b style="color:#ff8f73">⚑ Rebeldes · Misión: sofocar la rebelión (+200 €, +10 felicidad)</b>':o===id?'Región enemiga':'Ocupada por '+R[o].n}${COAST.has(id)?' · con costa':' · interior'}</div><h2>${R[id].n}</h2>${miniHTML(S.armies[id])}</div>
+  return `<div class="rcard"><div class="fl">${flag(id)}</div><div><div class="sub">${S.rebels&&S.rebels[id]?'<b style="color:#ff8f73">⚑ Rebeldes · Misión: sofocar la rebelión (+200 €, +10 felicidad)</b>':o===id?'Región enemiga':'Ocupada por '+R[o].n}${COAST.has(id)?' · con costa':' · interior'}</div><h2>${R[id].n}</h2>${miniHTML(S.armies[id])}${resLine(id)}</div>
     <div class="ad"><div class="a"><b>${eAtk(id)}</b><small>ATAQUE</small></div><div class="d"><b>${e}</b><small>DEFENSA</small></div></div>
     <div class="act"><div><div class="row"><span>Tu ataque <b style="color:var(--brass)">${a}</b> contra su defensa <b>${e}</b></span><b>${Math.round(ch*100)} %</b></div><div class="chance"><div style="width:${ch*100}%"></div></div>
       <p class="note" style="margin-top:6px">${!S.world&&RW[id]?`🗡️ Arma de la región: <b>${WPN[RW[id]].n}</b>${S.wpns&&S.wpns.includes(RW[id])?' (ya la tienes)':' · ¡conquístala para conseguirla!'}<br>`:''}${why||`Botín: ${R[id].v*2} € y +${R[id].v} € cada turno.${COAST.has(id)?' Tus barcos también atacan aquí.':' Sin costa: tus barcos no combaten aquí.'}`}${al.length?`<br><b style="color:var(--red)">⚠ Le ayudarán ${al.map(n=>R[n].n).join(' y ')} (+${ad} defensa)</b>`:''}</p></div>
@@ -601,7 +604,7 @@ function paneHTML(tab){
     <div class="row"><span>Ataque total</span><b>${pAtk()}</b></div>
     <div class="row"><span>Defensa total</span><b>${pDef()}</b></div>
     <div class="row"><span>Pistolas · Armaduras</span><b>nivel ${S.p} · nivel ${S.a}</b></div>
-    <div class="row"><span>Ingresos por turno</span><b>+${income()} €</b></div><div class="row"><span>Pagas del ejército</span><b style="color:#ff8f73">−${fmt(upkeep())} €</b></div>${doctHTML()}${occN()?`<div class="row"><span>Territorios con resistencia</span><b style="color:#ff8f73">${occN()} · −50 % de ingresos allí</b></div>`:''}
+    <div class="row"><span>Ingresos por turno</span><b>+${income()} €</b></div><div class="row"><span>Pagas del ejército</span><b style="color:#ff8f73">−${fmt(upkeep())} €</b></div>${resHTML()}${doctHTML()}${occN()?`<div class="row"><span>Territorios con resistencia</span><b style="color:#ff8f73">${occN()} · −50 % de ingresos allí</b></div>`:''}
     <div class="sub">Impuestos · el pueblo está ${(S.hap??70)>70?'contento':(S.hap??70)>40?'tranquilo':(S.hap??70)>20?'descontento':'furioso'}</div>
     <div class="taxes">${[5,10,15,20,25,30,40].map(v=>`<button class="envb ${(S.tax??15)===v?'on':''}" data-tax="${v}">${v} %</button>`).join('')}</div>
     <div class="hapbar"><div style="width:${S.hap??70}%"></div></div>
@@ -625,7 +628,7 @@ function renderPick(root){
 
 // ================= EVENTOS =================
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-diff],[data-skill],[data-gen],[data-bld],[data-wup],[data-dip],[data-evc],[data-race],[data-tc],[data-flyto],[data-zoomreg],[data-pick],[data-region],[data-tab],[data-view],[data-buy],[data-task],[data-act],[data-go],[data-trip],[data-skin],[data-wbuy],[data-tax],[data-tac],[data-doct]');
+  const b=e.target.closest('[data-diff],[data-skill],[data-gen],[data-bld],[data-wup],[data-dip],[data-evc],[data-race],[data-tc],[data-flyto],[data-zoomreg],[data-pick],[data-region],[data-tab],[data-view],[data-buy],[data-task],[data-act],[data-go],[data-trip],[data-skin],[data-wbuy],[data-tax],[data-rbuy],[data-tac],[data-doct]');
   if(!b||b.disabled)return;
   const d=b.dataset;if(typeof empClick==='function'&&empClick(d))return;
   if(d.tc){ui.tsel=d.tc;countryCities(d.tc);sfx('click');render();const tp=document.getElementById('tpanel');if(tp&&tp.scrollIntoView)tp.scrollIntoView({block:'nearest',behavior:'smooth'});return}
@@ -662,6 +665,7 @@ document.addEventListener('click',e=>{
   if(d.act==='chest')return openChest();
   if(d.act==='parade'){$('#modal').hidden=true;if(cleanup){cleanup();cleanup=null}return parade(d.t||'')}
   if(d.act==='close')return closeModal();
+  if(d.rbuy&&RES[d.rbuy]){const c=RES[d.rbuy].p*20;if(S.money<c)return;S.money-=c;res0()[d.rbuy]+=20;sfx('coin');save();render();return}
   if(d.act==='cfg'){ui.cfg=!ui.cfg;render();return}
   if(d.act==='more'){ui.more=!(ui.more||!['ejercito','juegos','misiones'].includes(ui.tab));if(!ui.more&&!['ejercito','juegos','misiones'].includes(ui.tab))ui.tab='ejercito';render();return}
   if(d.act==='side'){ui.noSide=!ui.noSide;render();return}
@@ -674,7 +678,7 @@ document.addEventListener('click',e=>{
 function buy(k){
   if(k==='s10'){if(S.money<140)return;S.money-=140;S.army.s+=10}
   else if(k==='p'||k==='a'){if(S[k]>=5||S.money<upPrice(S[k]))return;S.money-=upPrice(S[k]);S[k]++;log(`${k==='p'?'Pistolas':'Armaduras'} mejoradas a nivel ${S[k]}.`,'gold')}
-  else{if(S.money<U[k].price)return;S.money-=U[k].price;S.army[k]++;if(k!=='s')log(`Comprado: 1 ${U[k].one}.`,'gold')}
+  else{if(S.money<U[k].price)return;const ac={t:20,h:15,av:15,bq:30}[k]||0;if(ac&&res0().a<ac){toast('⚙️','Falta acero',`Necesitas ${ac} de acero para fabricar ${U[k].one}. Cómpralo o conquista una región con acerías.`,'');return}if(ac)res0().a-=ac;S.money-=U[k].price;S.army[k]++;if(k!=='s')log(`Comprado: 1 ${U[k].one}.`,'gold')}
   sfx('coin');save();render();if(modalRefresh)$('#box').innerHTML=modalRefresh();
 }
 function openModal(html,wide=false){if(cleanup){cleanup();cleanup=null}modalRefresh=null;const b=$('#box');b.className='box'+(wide?' wide':'');b.innerHTML=html;$('#modal').hidden=false;for(const k in KEYS)KEYS[k]=false;JOY.x=JOY.y=0;if(document.pointerLockElement)document.exitPointerLock()}
@@ -1153,6 +1157,10 @@ function makeTank(col){const g=new THREE.Group(),C=MAT({color:col}),D=MAT({color
   box(3.3,1,5.8,C,0,.85,0,0,g);const gl=box(3.3,.6,1.5,C,0,1.2,2.9,0,g);gl.rotation.x=-.45;box(4.2,.1,6,C,0,1.85,0,0,g);
   const tu=new THREE.Group();tu.position.set(0,1.95,-.4);g.add(tu);box(2.4,.85,3,C,0,0,0,0,tu);box(2,.3,2.4,C,0,.85,-.2,0,tu);
   const b=add(new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,4.4,10),D2),0,.45,3.6,tu);b.rotation.x=Math.PI/2;cyl(.3,.3,.25,D2,.6,.85,-.6,10,tu);cyl(.015,.015,2.4,D,-.9,.85,-1.2,4,tu);
+  cyl(.36,.38,.32,D2,-.55,1.05,-.7,12,tu);{const mg=add(new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,1.1,6),D),-.55,1.38,-.15,tu);mg.rotation.x=Math.PI/2}
+  {const mb=add(new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.45,10),D2),0,.45,5.75,tu);mb.rotation.x=Math.PI/2}
+  for(const sx of[-1,1]){box(.1,.5,5.7,C,sx*2.16,1.12,0,0,g);cyl(.09,.11,.55,D,sx*1.05,1.55,-3,8,g);box(.26,.18,.12,MAT({color:0xe8e2c0,emissive:0x2a2618}),sx*1.3,1.55,3.12,0,g)}
+  box(1.6,.45,.12,D2,0,1.25,-2.95,0,g);for(let i=0;i<4;i++)box(.4,.08,.55,D2,-.9+i*.6,1.93,-2.3,0,g);box(1.4,.08,.1,MAT({color:0x5a3e22}),0,1.93,1.6,0,g);
   g.userData={tu};return g}
 function makeHeli(col){const g=new THREE.Group(),C=MAT({color:col}),D=MAT({color:0x26261f}),gl=MAT({color:0x8fb8cc});
   const b=add(new THREE.Mesh(new THREE.SphereGeometry(1.4,16,12),C),0,1.8,0,g);b.scale.set(1,.92,1.95);
@@ -1170,6 +1178,10 @@ function makePlane(col){const g=new THREE.Group(),C=MAT({color:col}),D=MAT({colo
   box(4,.12,1.2,C,0,1.9,-4.4,0,g);const fin=box(.14,2,1.6,C,0,1.9,-4.4,0,g);fin.rotation.x=-.3;
   const ck=add(new THREE.Mesh(new THREE.SphereGeometry(.6,12,10),gl),0,2.25,3.2,g);ck.scale.set(.8,.7,1.8);
   for(const[x,z]of[[0,4.5],[-1.4,-.5],[1.4,-.5]]){cyl(.05,.05,1.1,D,x,.35,z,6,g);const wh=add(new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.2,10),D),x,.3,z,g);wh.rotation.z=Math.PI/2}
+  {const cw=add(new THREE.Mesh(new THREE.CylinderGeometry(.62,.6,.6,16,1,true),D),0,1.7,6.6,g);cw.rotation.x=Math.PI/2;const prop=new THREE.Group();prop.position.set(0,1.7,7.28);g.add(prop);
+    for(let i=0;i<3;i++){const h=new THREE.Group();h.rotation.z=i*2.094;const bl=new THREE.Mesh(new THREE.BoxGeometry(.16,1.5,.05),D);bl.position.y=.75;h.add(bl);prop.add(h)}
+    const sp=add(new THREE.Mesh(new THREE.ConeGeometry(.2,.5,10),MAT({color:0x8a8a84})),0,1.7,7.5,g);sp.rotation.x=Math.PI/2;g.userData.prop=prop;
+    cyl(.02,.02,1,D,0,2.6,1.6,4,g);box(.08,.5,.08,D,0,1.25,-4.6,0,g);for(const sx of[-1,1])for(let i=0;i<3;i++)box(.07,.07,.3,D,sx*.6,1.6,5.4-i*.35,0,g)}
   return g}
 function makeShip(col,fl){const g=new THREE.Group(),H=MAT({color:0x50565e}),L=MAT({color:0x8d939a}),D=MAT({color:0x2a2e33}),C=MAT({color:col});
   box(6,3,22,H,0,-1.6,-1,0,g);const s=new THREE.Shape();s.moveTo(-3,0);s.lineTo(3,0);s.lineTo(0,-7);s.lineTo(-3,0);const bg=new THREE.ExtrudeGeometry(s,{depth:3,bevelEnabled:false});bg.rotateX(-Math.PI/2);add(new THREE.Mesh(bg,H),0,-1.6,10,g);
@@ -1177,6 +1189,7 @@ function makeShip(col,fl){const g=new THREE.Group(),H=MAT({color:0x50565e}),L=MA
   box(4,3,7,L,0,1.4,-3,0,g);box(3.4,2,3,L,0,4.4,-2,0,g);box(3.5,.6,.2,MAT({color:0x223344}),0,5.2,-.45,0,g);
   cyl(.12,.15,5,D,0,6.4,-3,8,g);box(1.6,.2,.2,D,0,10,-3,0,g);cyl(.7,.9,2.4,D,0,4.4,-6.5,10,g);
   const tu=new THREE.Group();tu.position.set(0,1.5,6);g.add(tu);cyl(1,1.1,.9,L,0,0,0,12,tu);const bb=add(new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,3.4,8),D),0,.5,1.9,tu);bb.rotation.x=Math.PI/2;
+  for(const sx of[-1,1])for(const z of[-5.5,-1.5])box(.7,.45,2,MAT({color:0xc8642a}),sx*2.45,3.1,z,0,g);
   if(fl){cyl(.05,.05,3,D,0,1.5,-11.5,6,g);const fg=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.2),new THREE.MeshLambertMaterial({map:flagTex(fl),side:THREE.DoubleSide}));fg.geometry.translate(.9,0,0);fg.position.set(0,4,-11.5);fg.rotation.y=Math.PI/2;g.add(fg);for(const s2 of[-1,1]){const d=decal(fl,1.6,1.06);d.position.set(s2*3.02,-.2,4);d.rotation.y=s2*Math.PI/2;g.add(d)}}
   return g}
 
@@ -1683,7 +1696,7 @@ function makePerson(o){
       for(const px of[.07,.135]){const pc=new THREE.Mesh(new THREE.BoxGeometry(.06,.075,.05),lw);pc.position.set(sx*px,1.06,.13-(px-.07)*.5);g.add(pc)}}
     const ct=C(.055,.055,.15,M(0x3e4a32),.19,.93,-.04,g,10);ct.rotation.z=.12;C(.03,.035,.05,M(0x2a2a24),0,1.57,.105,g,8)}
   if(o.rifle){const bp=new THREE.Mesh(new THREE.BoxGeometry(.3,.36,.14),M(0x4a4a30));bp.position.set(0,1.3,-.17);bp.castShadow=true;g.add(bp);C(.07,.07,.3,M(0x5a5a3a),0,1.52,-.17,g,10).rotation.z=Math.PI/2}
-  C(.055,.06,.1,sk,0,1.66,0,g);Sp(.112,sk,0,1.8,0,g,.95,1.08,1);Sp(.02,sk,0,1.79,.108,g);for(const ex of[-.038,.038])Sp(.012,dk,ex,1.815,.098,g);
+  C(.055,.06,.1,sk,0,1.66,0,g);Sp(.112,sk,0,1.8,0,g,.95,1.08,1);Sp(.02,sk,0,1.79,.108,g);for(const ex of[-.038,.038])Sp(.012,dk,ex,1.815,.098,g);for(const ex of[-.106,.106])Sp(.026,sk,ex,1.795,-.005,g,.55,1,.9);for(const ex of[-.04,.04]){const eb=new THREE.Mesh(new THREE.BoxGeometry(.036,.009,.012),M(o.hair||0x2a1a10));eb.position.set(ex,1.838,.1);g.add(eb)}{const mo=new THREE.Mesh(new THREE.BoxGeometry(.04,.008,.01),M(0x7a4a3a));mo.position.set(0,1.752,.103);g.add(mo)}
   for(const sx of[-.255,.255]){const p=new THREE.Group();p.position.set(sx,1.53,0);Sp(.07,cl,0,0,0,p);C(.062,.054,.3,cl,0,-.17,0,p);Sp(.054,cl,0,-.33,0,p);C(.05,.044,.27,cl,0,-.47,0,p);Sp(.046,sk,0,-.64,0,p,.9,1.15,.8);
     if(o.rifle&&sx>0){const wd=MAT({color:0x5a3a1e}),st=MAT({color:0x2a2c2e});const rb=new THREE.Mesh(new THREE.BoxGeometry(.05,.7,.07),wd);rb.position.set(-.03,-.72,.06);rb.castShadow=true;p.add(rb);C(.012,.012,.38,st,-.03,-1.24,.07,p,8)}
     if(o.band&&sx<0)C(.068,.068,.075,M(o.band),0,-.12,0,p);g.add(p);arms.push(p)}
@@ -1927,7 +1940,10 @@ function battle3D(cfg,onEnd){
   ov.querySelectorAll('[data-tiempo]').forEach(b=>b.onclick=()=>{TIEMPO=b.dataset.tiempo;applyAtmo();sfx('click')});
   // ---- armas del jugador ----
   ensureDefaults();const OWN=S.wpns.slice();const guns={revolver:makeRevolver(env,S.skin.gun),metralleta:makeTommy(env)};OWN.forEach(k=>{if(!guns[k]&&WMODEL[k])guns[k]=WMODEL[k](env)});for(const k in guns)if(wl(k)>=5)goldify(guns[k]);
+  if(S.lastW&&guns[S.lastW])PL.wpn=S.lastW;
   for(const k in guns){const b=guns[k].userData.base;guns[k].position.set(b.x,b.y,b.z);guns[k].rotation.y=b.ry;cam.add(guns[k]);guns[k].visible=k===PL.wpn}
+  {const rl=q('#b3start .roles');if(rl&&OWN.length>1){const box=document.createElement('div');box.innerHTML=`<div class="sub">Arma principal (a pie)</div><div class="roles">${OWN.filter(k=>guns[k]).map(k=>{const W=WPN[k];return `<button class="role ${k===PL.wpn?'on':''}" data-wsel="${k}"><b>${W.n}</b><small>${W.melee?'Cuerpo a cuerpo':`Daño ${W.dmg}${W.pellets?'×'+W.pellets:''} · cargador ${W.mag}${W.auto?' · automática':''}`}</small></button>`}).join('')}</div>`;rl.after(box);
+    box.querySelectorAll('[data-wsel]').forEach(b=>b.onclick=()=>{PL.wpn=b.dataset.wsel;S.lastW=PL.wpn;box.querySelectorAll('[data-wsel]').forEach(x=>x.classList.toggle('on',x===b));for(const k in guns)guns[k].visible=k===PL.wpn;sfx('click')})}}
   {const vl=new THREE.PointLight(0xfff0dd,.7,2.5);vl.position.set(.25,.25,.1);cam.add(vl)}
   const casG=new THREE.CylinderGeometry(.0055,.0055,.022,8),casM=new THREE.MeshStandardMaterial({color:0xc8a04e,metalness:1,roughness:.3,envMap:env});B.cas=[];B.shake=0;
   let veh=null;
@@ -3409,7 +3425,7 @@ const SKL={punteria:{n:'Puntería',ic:'🎯',d:'+8 % de daño y −10 % de dispe
 const sk=k=>(S&&S.emp&&S.emp.skills&&S.emp.skills[k])||0;
 const isAlly=id=>!!(S&&S.emp&&S.emp.allies&&S.emp.allies[id]);
 const genSlots=()=>1+((S.prog&&S.prog.lvl||1)>=5?1:0)+(bLv('castillo')>=3?1:0);
-function effArmy(a){a=a||S.army;const o={...a};if(genOn('nelson'))o.bq=(o.bq||0)*2;if(genOn('patton'))o.t=(o.t||0)*1.5;return o}
+function effArmy(a){a=a||S.army;const a0=a;const o={...a};if(genOn('nelson'))o.bq=(o.bq||0)*2;if(genOn('patton'))o.t=(o.t||0)*1.5;if(S&&a0===S.army){if(S.noOil)for(const k of['t','h','av','bq'])o[k]=(o[k]||0)*.3;if(S.hunger)o.s=(o.s||0)*.8}return o}
 const allMul=()=>genOn('alejandro')?1.12:1;
 const stormNow=()=>!!(S&&S.emp&&S.emp.storm===S.turn);
 function atkMul(target){let m=(1+.06*sk('liderazgo'))*(genOn('cid')?1.2:1)*allMul();if(target&&ADJ[target]){const n=ADJ[target].filter(isAlly).length;m*=1+.12*n}return m}
@@ -3465,8 +3481,8 @@ function evChoice(yes){const e=E0(),ev=e.ev;if(!ev||ev.done)return;const T=EVS.f
 const evInner=()=>{const ev=E0().ev;if(!ev)return '';return `<b>📰 ${ev.t}</b><p>${ev.d}</p>${ev.done?`<p class="evres ${ev.bad?'bad':''}">➜ ${ev.res}</p>`:`<div class="btns"><button class="btn" data-evc="1">ACEPTAR</button><button class="btn ghost" data-evc="0">NO, GRACIAS</button></div>`}`};
 // ---------- turno del imperio y periódico ----------
 function empTurn(){const e=E0(),ev=S.turnEv;e.news=[];serioTurn(ev);const add=(k,n)=>{e.acc[k]=(e.acc[k]||0)+n;const w=Math.floor(e.acc[k]);if(w>0){e.acc[k]-=w;S.army[k]=(S.army[k]||0)+w}return w};
-  const prod=[];if(bLv('cuartel')){const n=8*bLv('cuartel');S.army.s+=n;prod.push(`${n} soldados`)}const t=add('t',.5*bLv('fabrica'));if(t)prod.push(`${t} tanque${t>1?'s':''}`);const av=add('av',.25*bLv('aeropuerto'));if(av)prod.push(`${av} avión`);
-  const h=add('h',.25*bLv('aeropuerto'));if(h)prod.push(`${h} helicóptero`);const bq=add('bq',.3*bLv('astillero'));if(bq)prod.push(`${bq} barco`);if(prod.length)ev.push(`🏭 Tus edificios han fabricado: <b>${prod.join(', ')}</b>.`);
+  const prod=[];if(!S.noCoal){if(bLv('cuartel')){const n=8*bLv('cuartel');S.army.s+=n;prod.push(`${n} soldados`)}const t=add('t',.5*bLv('fabrica'));if(t)prod.push(`${t} tanque${t>1?'s':''}`);const av=add('av',.25*bLv('aeropuerto'));if(av)prod.push(`${av} avión`);
+  const h=add('h',.25*bLv('aeropuerto'));if(h)prod.push(`${h} helicóptero`);const bq=add('bq',.3*bLv('astillero'));if(bq)prod.push(`${bq} barco`);if(prod.length)ev.push(`🏭 Tus edificios han fabricado: <b>${prod.join(', ')}</b>.`)}
   const hp=2*bLv('castillo')+(genOn('juana')?12:0);if(hp)S.hap=Math.min(100,(S.hap??70)+hp);
   const se=SEASON();if((S.turn-1)%3===0)ev.push(`${se.ic} <b>Empieza ${se.art} ${se.n.toLowerCase()}</b>: ${se.d}`);
   const wars=aiWars();e.news=wars;wars.forEach(w=>ev.push(w));
@@ -3682,7 +3698,7 @@ function occupy(id){S.occ=S.occ||{};S.occ[id]=3}
 const occN=()=>S&&S.occ?Object.keys(S.occ).filter(id=>S.occ[id]>0&&mine(id)).length:0;
 function campAdd(win,mine2,foe){S.camp=S.camp||{w:0,l:0,mk:0,ml:0};S.camp[win?'w':'l']++;const n=o=>UK.reduce((a,k)=>a+((o&&o[k])||0),0);S.camp.ml+=n(mine2);S.camp.mk+=n(foe);
   if(!win){S.hap=Math.max(0,(S.hap??70)-6);log('La derrota hunde la moral de tus tropas y de tu pueblo (−6).','bad')}}
-function serioTurn(ev){const pay=upkeep();
+function serioTurn(ev){resTurn(ev);const pay=upkeep();
   if(pay){if(S.money>=pay){S.money-=pay;ev.push(`💼 Pagas del ejército: <b>−${fmt(pay)} €</b>.`)}
     else{S.money=0;const n=Math.ceil((S.army.s||0)*.1);S.army.s=Math.max(0,(S.army.s||0)-n);S.hap=Math.max(0,(S.hap??70)-5);ev.push(`<b style="color:var(--red)">💼 No hay dinero para pagar al ejército: desertan ${n} soldados y la moral baja.</b>`);log(`Sin dinero para las pagas: desertan ${n} soldados.`,'bad')}}
   S.occ=S.occ||{};for(const id of Object.keys(S.occ)){if(!mine(id)){delete S.occ[id];continue}S.occ[id]--;
@@ -3716,15 +3732,45 @@ function stratFactors(id,tac,post){post=post||enemyPosture(id);const A=effArmy()
   const tr={monte:.88,nieve:.85,selva:.9,playa:.95}[th];if(tr)f.push([`Terreno difícil (${THEMES[th].n}): ventaja del defensor`,tr+(tac==='flanco'||tac==='noche'?.06:0)]);
   const hp=S.hap??70;f.push([`Moral de tus tropas (${hp})`,1+(hp-60)/250]);
   return{post,f,tot:f.reduce((a,x)=>a*x[1],1)}}
-function winChance(a,e,tot){let w=0;for(let i=0;i<300;i++)if(Math.pow(a,POW)*tot*roll()>Math.pow(e,POW)*roll())w++;return w/300}
+function stratChance(a,e,tot){let w=0;for(let i=0;i<300;i++)if(Math.pow(a,POW)*tot*roll()>Math.pow(e,POW)*roll())w++;return w/300}
 function planModal(id,mode){if(attackBlock(id))return;const ip=intelPosture(id),a=pAtk(id),e=eDef(id)+allyDef(id),g=stratFactors(id,'frontal',ip);
-  const cards=Object.keys(TACT).map(k=>{const f=stratFactors(id,k,ip),p=Math.round(winChance(a,e,f.tot)*100);
+  const cards=Object.keys(TACT).map(k=>{const f=stratFactors(id,k,ip),p=Math.round(stratChance(a,e,f.tot)*100);
     return `<button class="gcard" data-tac="${k}" data-id="${id}" data-mode="${mode}" style="width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit"><span class="gi">${{frontal:'⚔️',flanco:'↪️',asedio:'💣',noche:'🌙',desgaste:'⛓️'}[k]}</span><div><b>${TACT[k].n}</b><small>${TACT[k].d}</small><small>Ventaja ×${f.tot.toFixed(2)} · victoria estimada <b style="color:${p>=55?'var(--green)':p>=40?'var(--brass)':'var(--red)'}">${p} %</b></small></div></button>`}).join('');
-  openModal(`<h2>Plan de batalla · ${R[id].n}</h2><p><b>Informe de inteligencia</b> (fiabilidad ${Math.round(intelRel()*100)} %): el enemigo parece estar <b>${POST[ip]}</b>.</p>
+  openModal(`<h2>Plan de batalla · ${R[id].n}</h2><p><b>Informe de inteligencia</b> (fiabilidad ${Math.round(intelRel()*100)} %): el enemigo parece estar <b>${POST[ip]}</b>.</p>${whyHTML(id)}
     <div class="row"><span>Tu fuerza · fuerza enemiga</span><b>${fmt(a)} · ${fmt(e)}</b></div><small class="note">Tener más soldados ayuda, pero no decide la batalla: la táctica, el terreno, los frentes, las armas combinadas y la moral cuentan tanto como los números.</small>
     <div class="sub">Factores de la campaña</div>${g.f.slice(1).map(([t,m])=>`<div class="row"><span>${t}</span><b style="color:${m>=1?'var(--green)':'var(--red)'}">×${m.toFixed(2)}</b></div>`).join('')}
     <div class="sub">Elige la táctica${mode==='3d'?' (después lucharás en 3D)':''}</div>${cards}<button class="btn ghost" data-act="close">Cancelar</button>`)}
 function doctHTML(){const d=S.doct||'linea';return `<div class="sub">Doctrina defensiva</div><div style="display:flex;flex-wrap:wrap;gap:6px">${Object.keys(DOCT).map(k=>`<button class="buy" data-doct="${k}"${k===d?' style="border-color:var(--brass);color:var(--brass)"':''}>${k===d?'✓ ':''}${DOCT[k]}</button>`).join('')}</div><small class="note">${DOCTD[d]} Así defienden tus regiones cuando te atacan.</small>`}
+
+// ================= RECURSOS DE CADA PAÍS =================
+const RES={f:{n:'Comida',ic:'🌾',p:15},o:{n:'Petróleo',ic:'🛢️',p:30},a:{n:'Acero',ic:'⚙️',p:25},c:{n:'Carbón',ic:'⛏️',p:15}};
+const RESR={gal:{f:[6,'pesca, marisco y ganadería'],o:[3,'refinería de A Coruña'],c:[1,'lignito de As Pontes']},ast:{f:[3,'ganadería y lácteos'],a:[6,'acerías de Avilés y Gijón'],c:[8,'cuencas mineras del Nalón y el Caudal']},
+  can:{f:[3,'ganadería y pesca'],a:[3,'forjas de Reinosa']},vas:{f:[3,'pesca del Cantábrico'],o:[3,'refinería de Muskiz'],a:[7,'altos hornos de Vizcaya']},nav:{f:[4,'huertas de la Ribera']},rio:{f:[4,'viñedos y huertas del Ebro']},
+  ara:{f:[5,'cereal del valle del Ebro'],c:[3,'minas de carbón de Teruel']},cat:{f:[4,'agricultura y ganadería'],o:[5,'refinería de Tarragona'],a:[2,'industria metalúrgica']},cyl:{f:[8,'trigo y cereal de la meseta'],c:[5,'minas de León y Palencia']},
+  mad:{f:[1,'huertas del Jarama'],a:[2,'fábricas e industria']},clm:{f:[7,'cereal, vino y aceite'],o:[3,'refinería de Puertollano'],c:[2,'carbón de Puertollano']},ext:{f:[5,'dehesas, ganado y regadíos']},
+  and:{f:[8,'olivares, huertas e invernaderos'],o:[6,'refinerías de Huelva y Algeciras'],a:[2,'minas de Riotinto']},mur:{f:[6,'la huerta de Murcia'],o:[6,'refinería de Cartagena']},val:{f:[6,'naranjos y arrozales'],o:[3,'refinería de Castellón'],a:[2,'acería de Sagunto']},
+  bal:{f:[2,'almendros y pesca']},cnr:{f:[3,'plátanos y pesca'],o:[2,'refinería de Tenerife']}};
+const W_OIL={SAU:9,IRQ:8,IRN:8,KWT:7,ARE:7,QAT:6,OMN:4,VEN:8,RUS:9,USA:8,NOR:6,NGA:6,LBY:6,DZA:6,AGO:5,KAZ:5,CAN:7,MEX:5,BRA:4,GBR:3,AZE:4,EGY:3,COL:3,ECU:3,IDN:3,MYS:3,CHN:4,TKM:4,SDN:2,GAB:3,COG:3},
+  W_STEEL={CHN:9,JPN:7,IND:7,USA:6,RUS:6,KOR:6,DEU:6,TUR:4,BRA:5,UKR:5,AUS:6,SWE:5,FRA:4,ITA:4,POL:3,ZAF:3,CAN:4,MEX:3,IRN:3,GBR:3,AUT:2,BEL:2,CZE:2},
+  W_COAL={CHN:9,IND:8,USA:7,AUS:7,IDN:6,RUS:6,ZAF:6,DEU:4,POL:6,KAZ:4,COL:4,UKR:5,GBR:2,MNG:4,VNM:3,CZE:2},
+  W_FOOD={USA:9,BRA:9,ARG:8,FRA:7,IND:8,CHN:8,UKR:8,RUS:7,CAN:7,AUS:6,ITA:5,MEX:5,THA:6,VNM:5,DEU:5,POL:5,ESP:6,NZL:5,IDN:5,PAK:5,EGY:4,TUR:5,NLD:5,KAZ:4,NGA:4,ETH:3};
+const RCACHE={};
+function resOf(id){if(RESR[id])return RESR[id];if(RCACHE[id])return RCACHE[id];const th=themeOf(id),o={};
+  o.f=[W_FOOD[id]||({meseta:4,playa:4,selva:3,monte:3,seco:3,nieve:1,desierto:1}[th]||2),W_FOOD[id]?'grandes cosechas y ganadería':th==='desierto'?'oasis y pastoreo':th==='nieve'?'pesca y ganado':'agricultura y ganadería'];
+  if(W_OIL[id])o.o=[W_OIL[id],'campos petrolíferos'];if(W_STEEL[id])o.a=[W_STEEL[id],'minas de hierro y acerías'];if(W_COAL[id])o.c=[W_COAL[id],'minas de carbón'];return RCACHE[id]=o}
+function res0(){if(!S.res)S.res={f:60,o:30,a:40,c:30};return S.res}
+const resUse=()=>({f:Math.ceil((S.army.s||0)*.05),o:Math.ceil((S.army.t||0)+(S.army.h||0)+(S.army.av||0)*1.5+(S.army.bq||0)*2),a:0,c:bLv('fabrica')+bLv('astillero')+bLv('aeropuerto')});
+function resProd(){const p={f:0,o:0,a:0,c:0};for(const id of IDS)if(mine(id)){const r=resOf(id),k=S.occ&&S.occ[id]>0?.5:1;for(const x in r)p[x]+=Math.round(r[x][0]*k)}return p}
+const resNeed=()=>{const R0=res0(),p=resProd(),u=resUse(),o={};for(const k in RES)o[k]=R0[k]+(p[k]-u[k])*4<0||(k==='a'&&R0.a<20);return o};
+function resTurn(ev){const R0=res0(),p=resProd(),u=resUse();S.hunger=false;S.noOil=false;S.noCoal=false;for(const k in RES)R0[k]+=p[k]-u[k];
+  if(R0.f<0){R0.f=0;S.hunger=true;const n=Math.ceil((S.army.s||0)*.08);S.army.s=Math.max(0,(S.army.s||0)-n);S.hap=Math.max(0,(S.hap??70)-6);ev.push(`<b style="color:var(--red)">🌾 Hambre en el ejército: desertan ${n} soldados, baja la moral y tus tropas luchan peor (−20 %).</b>`);log(`Hambre: desertan ${n} soldados.`,'bad')}
+  if(R0.o<0){R0.o=0;S.noOil=true;ev.push(`<b style="color:var(--red)">🛢️ Sin petróleo: tanques, aviones, helicópteros y barcos casi no pueden moverse (−70 %).</b>`)}
+  if(R0.c<0){R0.c=0;S.noCoal=true;ev.push(`<b style="color:var(--red)">⛏️ Sin carbón: tus fábricas no producen este turno.</b>`)}
+  ev.push(`📦 Recursos este turno: ${Object.keys(RES).map(k=>`${RES[k].ic} ${p[k]-u[k]>=0?'+':''}${p[k]-u[k]}`).join(' · ')}`)}
+function resLine(id){const r=resOf(id),need=mine(id)?{}:resNeed();return `<div class="resl">${Object.keys(r).map(k=>`<span${need[k]?' class="need"':''}>${RES[k].ic} +${r[k][0]} <small>${r[k][1]}</small></span>`).join('')}</div>`}
+function whyHTML(id){const r=resOf(id),need=resNeed();return `<div class="sub">Por qué conquistar ${R[id].n}</div>${Object.keys(r).map(k=>`<div class="row"><span>${RES[k].ic} ${RES[k].n}: ${r[k][1]}</span><b style="color:${need[k]?'var(--brass)':'var(--fg)'}">+${r[k][0]}/turno${need[k]?' · ¡te hace falta!':''}</b></div>`).join('')}<div class="row"><span>💶 Impuestos</span><b>+${R[id].v} €/turno</b></div>`}
+function resHTML(){const R0=res0(),p=resProd(),u=resUse();return `<div class="sub">Recursos · lo que tienes y lo que ganas o gastas cada turno</div>${Object.keys(RES).map(k=>{const d=p[k]-u[k];return `<div class="row"><span>${RES[k].ic} ${RES[k].n} <b>${fmt(R0[k])}</b></span><span><b style="color:${d<0?'#ff8f73':'var(--green)'}">${d>=0?'+':''}${d}</b> <button class="buy" data-rbuy="${k}">+20 · ${fmt(RES[k].p*20)} €</button></span></div>`}).join('')}
+  <small class="note">🌾 la comen tus soldados · 🛢️ la gastan los vehículos · ⚙️ hace falta para fabricar vehículos · ⛏️ mueve tus fábricas. Conquista las regiones que tengan lo que te falta.</small>`}
 
 const CITYREG={madrid:'mad',barcelona:'cat',sevilla:'and'};
 function cityOwner(c){if(!S.world&&CITYREG[c.id])return S.owner[CITYREG[c.id]];if(S.world&&S.owner[c.c]!==undefined)return S.owner[c.c];return c.c}

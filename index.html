@@ -463,8 +463,8 @@ function load(){try{let d=localStorage.getItem(KEY);if(d)return JSON.parse(d);d=
 function armyPow(army,mode,ships,sMul=1){let v=0;for(const k of UK){if(k==='bq'&&!ships)continue;v+=(army[k]||0)*U[k][mode]*(k==='s'?sMul:1)}return Math.round(v)}
 const pAtk=target=>Math.round(armyPow(effArmy(),'atk',(target?COAST.has(target):true)&&!stormNow(),1+.3*S.p)*atkMul(target));
 const pDef=region=>Math.round(armyPow(effArmy(),'def',region?COAST.has(region):true,1+.3*S.a)*defMul(region));
-const eAtk=(id,target)=>Math.round(armyPow(S.armies[id],'atk',target?COAST.has(target):true)*enemyMul(id));
-const eDef=id=>Math.round(armyPow(S.armies[id],'def',COAST.has(id))*1.1*enemyMul(id));
+const eAtk=(id,target)=>Math.round(armyPow(aiArmy(id),'atk',target?COAST.has(target):true)*enemyMul(id));
+const eDef=id=>Math.round(armyPow(aiArmy(id),'def',COAST.has(id))*1.1*enemyMul(id));
 const mine=id=>S.owner[id]==='P';
 const myCount=()=>IDS.filter(mine).length;
 const taxMult=()=>(S&&S.tax!=null?S.tax:15)/15;
@@ -568,7 +568,7 @@ function rcardHTML(id){
       <button class="btn" data-view="region">VISITAR A CABALLO</button>${GEO.world&&WORLD&&WORLD.n[id]?`<button class="btn ghost" data-flyto="${id}">✈️ VOLAR A ${R[id].n.toUpperCase()}</button>`:''}</div></div>`;
   }
   const o=S.owner[id], a=pAtk(id), ad=allyDef(id), al=alliesOf(id), e=eDef(id)+ad, ch=winChance(a,e), why=attackBlock(id);
-  return `<div class="rcard"><div class="fl">${flag(id)}</div><div><div class="sub">${S.rebels&&S.rebels[id]?'<b style="color:#ff8f73">⚑ Rebeldes · Misión: sofocar la rebelión (+200 €, +10 felicidad)</b>':o===id?'Región enemiga':'Ocupada por '+R[o].n}${COAST.has(id)?' · con costa':' · interior'}</div><h2>${R[id].n}</h2>${miniHTML(S.armies[id])}${resLine(id)}</div>
+  return `<div class="rcard"><div class="fl">${flag(id)}</div><div><div class="sub">${S.rebels&&S.rebels[id]?'<b style="color:#ff8f73">⚑ Rebeldes · Misión: sofocar la rebelión (+200 €, +10 felicidad)</b>':o===id?'Región enemiga':'Ocupada por '+R[o].n}${COAST.has(id)?' · con costa':' · interior'}</div><h2>${R[id].n}</h2>${miniHTML(S.armies[id])}${resLine(id)}${aiStatus(id)}</div>
     <div class="ad"><div class="a"><b>${eAtk(id)}</b><small>ATAQUE</small></div><div class="d"><b>${e}</b><small>DEFENSA</small></div></div>
     <div class="act"><div><div class="row"><span>Tu ataque <b style="color:var(--brass)">${a}</b> contra su defensa <b>${e}</b></span><b>${Math.round(ch*100)} %</b></div><div class="chance"><div style="width:${ch*100}%"></div></div>
       <p class="note" style="margin-top:6px">${!S.world&&RW[id]?`🗡️ Arma de la región: <b>${WPN[RW[id]].n}</b>${S.wpns&&S.wpns.includes(RW[id])?' (ya la tienes)':' · ¡conquístala para conseguirla!'}<br>`:''}${why||`Botín: ${R[id].v*2} € y +${R[id].v} € cada turno.${COAST.has(id)?' Tus barcos también atacan aquí.':' Sin costa: tus barcos no combaten aquí.'}`}${al.length?`<br><b style="color:var(--red)">⚠ Le ayudarán ${al.map(n=>R[n].n).join(' y ')} (+${ad} defensa)</b>`:''}</p></div>
@@ -2605,7 +2605,8 @@ function endTurn(){
   if(S.hap<25&&!genOn('juana')&&Math.random()<.4){const cand=IDS.filter(id=>mine(id)&&id!==capId());if(cand.length){const rid=cand[rand(cand.length)];S.owner[rid]=rid;S.rebels=S.rebels||{};S.rebels[rid]=true;S.armies[rid]={s:20+rand(20),t:rand(2),h:0,av:0,bq:0};S.hap+=15;log(`¡${R[rid].n} se ha rebelado por los impuestos!`,'bad');S.turnEv.push(`<b style="color:var(--red)">¡${R[rid].n} se ha rebelado por los impuestos altos y se ha independizado!</b>`)}}
   IDS.filter(id=>!mine(id)).forEach(id=>{const a=S.armies[id],k=R[id].v/50;
     a.s+=Math.round((2+Math.random()*3)*k)+Math.floor(S.turn/4);
-    if(Math.random()<.2*k)a.t++;if(Math.random()<.08*k)a.h++;if(Math.random()<.05*k)a.av++;if(COAST.has(id)&&Math.random()<.08*k)a.bq++});
+    if(Math.random()<.2*k&&aiSpend(id,'a',15))a.t++;if(Math.random()<.08*k&&aiSpend(id,'a',12))a.h++;if(Math.random()<.05*k&&aiSpend(id,'a',12))a.av++;if(COAST.has(id)&&Math.random()<.08*k&&aiSpend(id,'a',25))a.bq++});
+  aiResTurn(S.turnEv);
   empTurn();pendingBattle=null;log(`Turno ${S.turn}: +${inc} €.`,'gold');
   const borders=IDS.filter(id=>!mine(id)&&!isAlly(id)&&ADJ[id].some(mine));
   if(borders.length&&Math.random()<Math.min(.5,.28+S.turn*.015)){const from=borders[rand(borders.length)],tg=ADJ[from].filter(mine);S.pendingCounter={from,to:tg[rand(tg.length)]}}
@@ -3459,9 +3460,9 @@ function doDip(act,id){const e=E0();
   else if(act==='annex'){const p=annexPrice(id);if(S.money<p)return;S.money-=p;annexNow(id,'de forma pacífica')}}
 // ---------- guerras entre países enemigos ----------
 function aiWars(){const out=[];const en=IDS.filter(id=>!mine(id)&&!isAlly(id)&&S.armies[id]);for(let n=0;n<2;n++){if(Math.random()>.55||!en.length)continue;const a=en[rand(en.length)];
-  const nb=(ADJ[a]||[]).filter(b=>IDS.includes(b)&&!mine(b)&&!isAlly(b)&&S.armies[b]&&S.owner[b]!==S.owner[a]);if(!nb.length)continue;const b=nb[rand(nb.length)],A=S.armies[a],Bv=S.armies[b],own=S.owner[a],on=R[own]?R[own].n:R[a].n;
-  const pa=armyPow(A,'atk',COAST.has(b))*roll(),pb=armyPow(Bv,'def',COAST.has(b))*roll()*1.1;
-  if(pa>pb){S.owner[b]=own;const mv={};UK.forEach(k=>{mv[k]=Math.floor((A[k]||0)*.45);A[k]=(A[k]||0)-mv[k]});S.armies[b]=mv;if(S.rebels)delete S.rebels[b];out.push(`⚔️ <b>${on}</b> ha conquistado <b>${R[b].n}</b>.`)}
+  const nb=(ADJ[a]||[]).filter(b=>IDS.includes(b)&&!mine(b)&&!isAlly(b)&&S.armies[b]&&S.owner[b]!==S.owner[a]);if(!nb.length)continue;const sta=aiRes(S.owner[a]),lack=Object.keys(RES).filter(k=>sta[k]<8),rich=nb.filter(x=>lack.some(k=>resOf(x)[k])),b=rich.length?rich[rand(rich.length)]:nb[rand(nb.length)],A=S.armies[a],Bv=S.armies[b],own=S.owner[a],on=R[own]?R[own].n:R[a].n;
+  const pa=Math.pow(armyPow(aiArmy(a),'atk',COAST.has(b)),POW)*roll(),pb=Math.pow(armyPow(aiArmy(b),'def',COAST.has(b)),POW)*roll()*1.1;
+  if(pa>pb){S.owner[b]=own;const mv={};UK.forEach(k=>{mv[k]=Math.floor((A[k]||0)*.45);A[k]=(A[k]||0)-mv[k]});S.armies[b]=mv;if(S.rebels)delete S.rebels[b];out.push(`⚔️ <b>${on}</b> ha conquistado <b>${R[b].n}</b>${rich.includes(b)?` para quedarse con su ${lack.filter(k=>resOf(b)[k]).map(k=>RES[k].n.toLowerCase()).join(' y ')}`:''}.`)}
   else{loseUnits(A,.25);loseUnits(Bv,.12);out.push(`🛡️ <b>${R[b].n}</b> ha resistido un ataque de <b>${on}</b>.`)}}return out}
 // ---------- eventos aleatorios ----------
 function enemyPick(){const c=IDS.filter(id=>!mine(id)&&!isAlly(id)&&S.armies[id]);return c.length?c[rand(c.length)]:null}
@@ -3736,7 +3737,7 @@ function stratChance(a,e,tot){let w=0;for(let i=0;i<300;i++)if(Math.pow(a,POW)*t
 function planModal(id,mode){if(attackBlock(id))return;const ip=intelPosture(id),a=pAtk(id),e=eDef(id)+allyDef(id),g=stratFactors(id,'frontal',ip);
   const cards=Object.keys(TACT).map(k=>{const f=stratFactors(id,k,ip),p=Math.round(stratChance(a,e,f.tot)*100);
     return `<button class="gcard" data-tac="${k}" data-id="${id}" data-mode="${mode}" style="width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit"><span class="gi">${{frontal:'⚔️',flanco:'↪️',asedio:'💣',noche:'🌙',desgaste:'⛓️'}[k]}</span><div><b>${TACT[k].n}</b><small>${TACT[k].d}</small><small>Ventaja ×${f.tot.toFixed(2)} · victoria estimada <b style="color:${p>=55?'var(--green)':p>=40?'var(--brass)':'var(--red)'}">${p} %</b></small></div></button>`}).join('');
-  openModal(`<h2>Plan de batalla · ${R[id].n}</h2><p><b>Informe de inteligencia</b> (fiabilidad ${Math.round(intelRel()*100)} %): el enemigo parece estar <b>${POST[ip]}</b>.</p>${whyHTML(id)}
+  openModal(`<h2>Plan de batalla · ${R[id].n}</h2><p><b>Informe de inteligencia</b> (fiabilidad ${Math.round(intelRel()*100)} %): el enemigo parece estar <b>${POST[ip]}</b>.</p><div class="sub">Reservas del enemigo</div>${aiStatus(id)}${whyHTML(id)}
     <div class="row"><span>Tu fuerza · fuerza enemiga</span><b>${fmt(a)} · ${fmt(e)}</b></div><small class="note">Tener más soldados ayuda, pero no decide la batalla: la táctica, el terreno, los frentes, las armas combinadas y la moral cuentan tanto como los números.</small>
     <div class="sub">Factores de la campaña</div>${g.f.slice(1).map(([t,m])=>`<div class="row"><span>${t}</span><b style="color:${m>=1?'var(--green)':'var(--red)'}">×${m.toFixed(2)}</b></div>`).join('')}
     <div class="sub">Elige la táctica${mode==='3d'?' (después lucharás en 3D)':''}</div>${cards}<button class="btn ghost" data-act="close">Cancelar</button>`)}
@@ -3771,6 +3772,24 @@ function resLine(id){const r=resOf(id),need=mine(id)?{}:resNeed();return `<div c
 function whyHTML(id){const r=resOf(id),need=resNeed();return `<div class="sub">Por qué conquistar ${R[id].n}</div>${Object.keys(r).map(k=>`<div class="row"><span>${RES[k].ic} ${RES[k].n}: ${r[k][1]}</span><b style="color:${need[k]?'var(--brass)':'var(--fg)'}">+${r[k][0]}/turno${need[k]?' · ¡te hace falta!':''}</b></div>`).join('')}<div class="row"><span>💶 Impuestos</span><b>+${R[id].v} €/turno</b></div>`}
 function resHTML(){const R0=res0(),p=resProd(),u=resUse();return `<div class="sub">Recursos · lo que tienes y lo que ganas o gastas cada turno</div>${Object.keys(RES).map(k=>{const d=p[k]-u[k];return `<div class="row"><span>${RES[k].ic} ${RES[k].n} <b>${fmt(R0[k])}</b></span><span><b style="color:${d<0?'#ff8f73':'var(--green)'}">${d>=0?'+':''}${d}</b> <button class="buy" data-rbuy="${k}">+20 · ${fmt(RES[k].p*20)} €</button></span></div>`}).join('')}
   <small class="note">🌾 la comen tus soldados · 🛢️ la gastan los vehículos · ⚙️ hace falta para fabricar vehículos · ⛏️ mueve tus fábricas. Conquista las regiones que tengan lo que te falta.</small>`}
+
+// ---- recursos de los países enemigos ----
+function aiRes(own){S.ares=S.ares||{};if(!S.ares[own])S.ares[own]={f:45,o:20,a:25,c:20};return S.ares[own]}
+function aiSpend(id,k,n){const own=S.owner[id];if(!own||own==='P')return true;const st=aiRes(own);if(st.noCoal||st[k]<n)return false;st[k]-=n;return true}
+function aiArmy(id){const a=S.armies[id]||{},own=S.owner[id],st=own&&own!=='P'&&S.ares&&S.ares[own];if(!st||(!st.hunger&&!st.noOil))return a;const o={...a};
+  if(st.noOil)for(const k of['t','h','av','bq'])o[k]=(o[k]||0)*.3;if(st.hunger)o.s=(o.s||0)*.8;return o}
+function aiResTurn(ev){const fac={};for(const id of IDS){const own=S.owner[id];if(!own||own==='P')continue;(fac[own]=fac[own]||[]).push(id)}
+  const starving=[],dry=[];
+  for(const own in fac){const st=aiRes(own),p={f:0,o:0,a:0,c:0},u={f:0,o:0,a:0,c:0};
+    for(const id of fac[own]){const r=resOf(id);for(const k in r)p[k]+=r[k][0];const A=S.armies[id]||{};u.f+=(A.s||0)*.05;u.o+=(A.t||0)+(A.h||0)+(A.av||0)*1.5+(A.bq||0)*2;u.c+=.5}
+    p.o+=4;p.a+=1;for(const k in RES){st[k]=Math.round((st[k]+p[k]-u[k])*10)/10}
+    st.hunger=st.f<0;st.noOil=st.o<0;st.noCoal=st.c<0;for(const k in RES)if(st[k]<0)st[k]=0;
+    if(st.hunger){for(const id of fac[own]){const A=S.armies[id];if(A)A.s=Math.max(0,Math.floor((A.s||0)*.94))}starving.push(R[own]?R[own].n:R[fac[own][0]].n)}
+    if(st.noOil)dry.push(R[own]?R[own].n:R[fac[own][0]].n)}
+  if(starving.length)ev.push(`🌾 <b>Hambre en el bando enemigo:</b> ${starving.slice(0,4).join(', ')}${starving.length>4?'…':''}. Sus soldados desertan y luchan peor.`);
+  if(dry.length)ev.push(`🛢️ <b>Sin petróleo:</b> ${dry.slice(0,4).join(', ')}${dry.length>4?'…':''}. Sus tanques y aviones casi no pueden moverse: buen momento para atacar.`)}
+function aiStatus(id){const own=S.owner[id];if(!own||own==='P')return '';const st=aiRes(own);const warn=[st.hunger?'pasa hambre (−20 %)':'',st.noOil?'sin petróleo (vehículos −70 %)':'',st.noCoal?'sin carbón (no fabrica)':''].filter(Boolean);
+  return `<div class="resl" title="Reservas del bando enemigo">${Object.keys(RES).map(k=>`<span${st[k]<5?' class="need"':''}>${RES[k].ic} ${Math.floor(st[k])}</span>`).join('')}${warn.length?`<span class="need">⚠ ${warn.join(' · ')}</span>`:''}</div>`}
 
 const CITYREG={madrid:'mad',barcelona:'cat',sevilla:'and'};
 function cityOwner(c){if(!S.world&&CITYREG[c.id])return S.owner[CITYREG[c.id]];if(S.world&&S.owner[c.c]!==undefined)return S.owner[c.c];return c.c}
